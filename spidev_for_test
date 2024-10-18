@@ -3,29 +3,40 @@
 import spidev
 import time
 
-# Create an SPI instance
+# Initialize the SPI communication
 spi = spidev.SpiDev()
 
-# Start SPI communication
-spi.open(0, 0)  # Bus 0, Device 0 (spidev0.0)
-spi.max_speed_hz = 50000  # Set maximum speed (Hz)
+# Start SPI communication (Bus 0, Device 0)
+spi.open(0, 0)  # spidev0.0
+spi.max_speed_hz = 33333  # Set maximum speed (Hz)
 spi.mode = 0  # Set SPI mode (0-3)
 
-# Function to send and receive SPI data
 def spi_transfer(data):
-    print(f"Sending: {data}")
+    """
+    Function to send and receive data via SPI.
+
+    :param data: List of data bytes to send (each element should be an integer between 0-255)
+    :return: List of received data bytes
+    """
+    # Print the data to be sent
+    send_str = ' '.join(f'0x{byte:02X}' for byte in data)
+    print(f"Sending: [{send_str}]")
     
-    # Send data via MOSI and receive data from MISO (loopback)
-    response = spi.xfer2(data)
+    # Send data via MOSI and receive data from MISO
     
-    print(f"Received: {response}")
+    response = spi.xfer2(data,delay_usec=0.001)
+
+    
+    # Print the received data
+    recv_str = ' '.join(f'0x{byte:02X}' for byte in response)
+    print(f"Received: [{recv_str}]")
+    
     return response
 
-# Example loop to send and receive data
 try:
     while True:
-        # Example data to send
-        send_data = [0x03, 0x72, 0x13]
+        # Example data to send (40 bits / 5 bytes)
+        send_data = [0x03, 0x72, 0x13, 0xA5, 0xFF]  # Modify to desired 5-byte data
         
         # Perform SPI transfer
         received_data = spi_transfer(send_data)
@@ -34,6 +45,7 @@ try:
         time.sleep(1)
 
 except KeyboardInterrupt:
-    spi.close()  # End SPI communication
-    print("SPI communication terminated")
+    # Close SPI communication upon program termination
+    spi.close()
+    print("SPI communication terminated.")
 

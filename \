@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+import spidev
+import time
+
+# Create an SPI instance
+spi = spidev.SpiDev()
+
+# Start SPI communication
+spi.open(0, 0)  # Bus 0, Device 0 (spidev0.0)
+
+spi.max_speed_hz = 50000  # Set maximum speed (Hz)
+spi.bits_per_word = 32
+spi.mode = 0  # Set SPI mode (0-3)
+
+# Function to send and receive SPI data
+def spi_transfer(data):
+    print(f"Sending: {data}")
+    
+    # Send data via MOSI and receive data from MISO (loopback)
+    response = spi.xfer2(data)
+    
+    print(f"Received: {response}")
+    return response
+
+# Example loop to send and receive data
+try:
+    while True:
+        # Example data to send
+        send_data = [0x12345678, 0x12345678, 0x12345678]
+        
+        # Perform SPI transfer
+        received_data = spi_transfer(send_data)
+        
+        # Wait for 1 second before sending the next data
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    spi.close()  # End SPI communication
+    print("SPI communication terminated")
+

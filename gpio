@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+
+import RPi.GPIO as GPIO
+import time
+
+# GPIO 핀 설정 (예시로 4개의 GPIO 핀을 사용)
+pins = [17, 18, 27, 22]  # 사용할 GPIO 핀 번호
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(pins, GPIO.OUT)
+
+def output_32bit_data(data):
+    for i in range(32):
+        bit = (data >> (31 - i)) & 1
+        for pin in pins:
+            GPIO.output(pin, bit)
+        time.sleep(0.001)  # 속도 조절
+
+try:
+    while True:
+        output_32bit_data(0x12345678)  # 32비트 데이터 출력
+        time.sleep(1)  # 1초 대기
+finally:
+    GPIO.cleanup()
+

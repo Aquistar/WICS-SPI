@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+
+import RPi.GPIO as GPIO
+import time
+
+# GPIO pin configuration
+SCLK = 11  # Clock pin
+MOSI = 10  # Master Out Slave In (MOSI) pin
+MISO = 9   # Master In Slave Out (MISO) pin
+CS = 8     # Chip Select (CS) pin
+
+# GPIO initialization and mode setup
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(SCLK, GPIO.OUT)
+GPIO.setup(MOSI, GPIO.OUT)
+GPIO.setup(MISO, GPIO.IN)  # MISO pin is set as input
+GPIO.setup(CS, GPIO.OUT)
+
+# Initial state setup for SCLK, MOSI, and CS
+GPIO.output(SCLK, GPIO.LOW)
+GPIO.output(MOSI, GPIO.LOW)
+GPIO.output(CS, GPIO.HIGH)
+
+def precise_delay(duration):
+    """Provide a more precise short delay"""
+    target_time = time.time() + duration
+    while time.time() < target_time:
+        pass
+
+def spi_transfer_bit(bit):
+    """Send 1 bit via MOSI and read 1 bit from MISO"""
+    GPIO.output(MOSI, bit)  # Send data via MOSI
+    precise_delay(0.000030)  # Short delay before clock signal
+    GPIO.output(SCLK, GPIO.HIGH)  # Clock rising edge
+
+    # Read data from MISO during clock high
+    miso_bit = GPIO.input(MISO)
+    precise_delay(0.000010)  # Keep clock high for a short time
+    GPIO.output(SCLK, GPIO.LOW)  # Clock falling edge
+
+    return miso_bit  # Return the bit read from MISO
+
+def spi_transfer_40bit(data):
+    """Transmit 40-bit data via SPI and receive 40-bit response"""
+    GPIO.output(CS, GPIO.LOW)  # Select slave (activate CS)
+    print(f"Sending data: {data:040b}")  # Print the 40-bit data being sent
+
+    received_data = 0  # Variable to store the received 40-bit data
+    for i in range(40):
+        bit = (data >> (39 - i)) & 0x01  # Extract each bit starting from MSB
+        received_bit = spi_transfer_bit(bit)  # Send each bit and read from MISO
+        received_data = (received_data << 1) | received_bit  # Accumulate received bits
+
+    GPIO.output(CS, GPIO.HIGH)  # Deselect slave (deactivate CS)
+
+    print(f"Received data: {received_data:040b}")  # Print the 40-bit data received
+    return received_data
+
+try:
+    while True:
+        data = 0x123256380A  # 40-bit data to be transmitted
+        spi_transfer_40bit(data)  # Transmit and receive 40-bit data
+        time.sleep(1)  # Wait for 1 second before the next transmission
+finally:
+    GPIO.cleanup()  # Clean up GPIO settings
+
